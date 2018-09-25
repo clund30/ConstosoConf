@@ -11,7 +11,6 @@
     var LocalStarStorage = conference.LocalStarStorage;
     var parseTimeAsTotalMinutes = conference.parseTimeAsTotalMinutes;
 
-
     var ScheduleItem = Object.inherit({
 
         initialize: function (data, localStarStorage) {
@@ -148,7 +147,6 @@
         }
     });
 
-
     var Page = Object.inherit({
         initialize: function () {
             var scheduleListElement = document.getElementById("schedule");
@@ -159,7 +157,6 @@
             this.scheduleList.startDownload();
         }
     });
-
 
     Page.create();
 

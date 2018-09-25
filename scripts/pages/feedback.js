@@ -1,54 +1,41 @@
-﻿/// <reference path="_namespace.js" />
-/// <reference path="geometry.js" />
+﻿/// <reference path="../_namespace.js" />
+/// <reference path="../StarRatingView.js" />
 
 (function () {
 
-    var conferenceLocation = {
-        latitude: 47.6097,  // decimal degrees
-        longitude: 122.3331 // decimal degrees
+    var section = document.getElementById("feedback");
+    var form = section.querySelector("form");
+    var sent = document.getElementById("feedback-sent");
+
+    var formSubmitting = function (event) {
+        event.preventDefault();
+        // TODO: Trigger the animation by adding the "sending" CSS class to the form
     };
 
-    var maximumDistanceInMilesFromConferenceToShowVenue = 10;
-
-    var distanceElement = document.getElementById("distance");
-    var travelSection = document.querySelector("section.travel");
-    var venueSection = document.querySelector("section.venue");
-
-    var distanceFromConference = function (coords) {
-        return Math.floor(conference.geometry.distanceInMiles(coords, conferenceLocation));
+    var animationEnded = function () {
+        section.style.display = "none";
+        sent.style.display = "block";
     };
 
-    var showDistanceMessage = function (distance) {
-        var message = "You are " + distance + " miles from the conference";
-        distanceElement.textContent = message;
-    };
+    form.addEventListener("submit", formSubmitting, false);
 
-    var moveVenueSectionToTop = function () {
-        travelSection.parentNode.insertBefore(venueSection, travelSection);
-    };
+    // TODO: Add listener for the animationend event,
+    //       calling the animationEnded function.
 
-    var updateUIForPosition = function (position) {
-        var distance = distanceFromConference(position.coords);
-        showDistanceMessage(distance);
-        var isNearToConference = distance < maximumDistanceInMilesFromConferenceToShowVenue;
-        if (isNearToConference) {
-            moveVenueSectionToTop();
-        }
-    };
+    var StarRatingView = conference.StarRatingView;
 
-    var error = function () {
-        distanceElement.textContent = "Could not detect your current location.";
-    };
-
-    navigator.geolocation.getCurrentPosition(updateUIForPosition, error);
+    var questions = form.querySelectorAll(".feedback-question");
+    for (var i = 0; i < questions.length; i++) {
+        StarRatingView.create(questions[i]);
+    }
 
 } ());
 // SIG // Begin signature block
 // SIG // MIIaaAYJKoZIhvcNAQcCoIIaWTCCGlUCAQExCzAJBgUr
 // SIG // DgMCGgUAMGcGCisGAQQBgjcCAQSgWTBXMDIGCisGAQQB
 // SIG // gjcCAR4wJAIBAQQQEODJBs441BGiowAQS9NQkAIBAAIB
-// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFJ6sFFrxu7a9
-// SIG // B7KflXOnryhccyGBoIIVLzCCBJkwggOBoAMCAQICEzMA
+// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFGvBwK4SIN7l
+// SIG // JeOuFVSYB909PlU1oIIVLzCCBJkwggOBoAMCAQICEzMA
 // SIG // AACdHo0nrrjz2DgAAQAAAJ0wDQYJKoZIhvcNAQEFBQAw
 // SIG // eTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0
 // SIG // b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNVBAoTFU1p
@@ -220,19 +207,19 @@
 // SIG // EzMAAACdHo0nrrjz2DgAAQAAAJ0wCQYFKw4DAhoFAKCB
 // SIG // vjAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
 // SIG // BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG
-// SIG // 9w0BCQQxFgQUHDa5uTyHJQ2Bv8gAryqlZRJB43YwXgYK
+// SIG // 9w0BCQQxFgQUhvYe27PDYcMwwjHy85ul/ZIi0IMwXgYK
 // SIG // KwYBBAGCNwIBDDFQME6gJoAkAE0AaQBjAHIAbwBzAG8A
 // SIG // ZgB0ACAATABlAGEAcgBuAGkAbgBnoSSAImh0dHA6Ly93
 // SIG // d3cubWljcm9zb2Z0LmNvbS9sZWFybmluZyAwDQYJKoZI
-// SIG // hvcNAQEBBQAEggEAsHtdWxIqwUVW/QaymRB8XhTFqf7Y
-// SIG // 6cGhtOnx1CNaiVBiBpCyw5+J4Nrg3ENfrSrYRVH3LY3Y
-// SIG // CFR4TNFHgoTxj5vJAS/40hz04qQ+xk8UVdCncJ2JyqHc
-// SIG // CuGZQImUHYWxGkrmwTZ0NdLhaCHzMWwOQQloMMBRf/MB
-// SIG // HtvjO9Qz7L4ceqP7bojoEKB6WBLaqtS9EitmCpWlvrn1
-// SIG // iXntEYrI+JFgxwc+CHw1MgEJOU7bpXSVsA4SDFiBwS4w
-// SIG // iA/FiorIX7PCC2qqTaMeEZwsfJzJEORy3zWV/ZS1mxgK
-// SIG // TERzw7geDY58Cts/UFPCoOPfMOPkvHGN3BXsZtCB28ZO
-// SIG // wIZOgaGCAigwggIkBgkqhkiG9w0BCQYxggIVMIICEQIB
+// SIG // hvcNAQEBBQAEggEAnsllLcpVHi3IAQbolhVlGru/11ZS
+// SIG // iwjM46lJgx2/irQxxqDLsfrs/tf4ZjH1Ad/CCQ+6Ytfy
+// SIG // EQlBp/+FIs50/4CGifdDyzXC76RqaqBh2WaOzBmE/r55
+// SIG // MJv/BVBfIt9cKtvYVs9OOzeiM9R+RP7dVRi1eV4mZa5L
+// SIG // LY0IE7o8AG0uVkft5jY4vUySiH74mr5/vwk3HQ6MGhJ5
+// SIG // 0wN+EiCQz2LvYamIzPQClaCy1o/+At7tr5Sqbw50V05K
+// SIG // 1CFU/q76KMaYIJ2xQ5rzl/FAmwvrOJh7mAEDepbsts2t
+// SIG // KtWCQoF4+ujdtToEORMcCRJ7SQo94kWTioDU2yiKHxQb
+// SIG // xwugSKGCAigwggIkBgkqhkiG9w0BCQYxggIVMIICEQIB
 // SIG // ATCBjjB3MQswCQYDVQQGEwJVUzETMBEGA1UECBMKV2Fz
 // SIG // aGluZ3RvbjEQMA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UE
 // SIG // ChMVTWljcm9zb2Z0IENvcnBvcmF0aW9uMSEwHwYDVQQD
@@ -240,13 +227,13 @@
 // SIG // OTJIwbLJSPMAAAAAACswCQYFKw4DAhoFAKBdMBgGCSqG
 // SIG // SIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkF
 // SIG // MQ8XDTEyMTExNTAwMDgwNVowIwYJKoZIhvcNAQkEMRYE
-// SIG // FMkr+7JJi4PkiVFPQ2H3R3ynJxq3MA0GCSqGSIb3DQEB
-// SIG // BQUABIIBAAHMasmJL2jK+OmyNm4K+M/69334ntR5L5Cp
-// SIG // P2hlomeWWH7BUsGNTo7WLUzVrKEEH2wQcs3oVufjmz4a
-// SIG // /9HJLtLarPxKLvZEhxJXtXHVUOotz+sD/mkIruPw2ci/
-// SIG // MORHuuTpVCZmKAJ44a9drqoEn+2FEUrAR/wUxbLPJqBS
-// SIG // xk6lf6V55i0/lQTrpM8sDsvJgSH9v/DzHwS+Y2JlvRUr
-// SIG // 7GzbZjDg2cstY1BQ5vrDsNbbP6vM8gme5JBdT+kqZkh8
-// SIG // C+FcmeBwdY09EZ0gsPsWeLK2iUEROdA0TAPQdah7yaUE
-// SIG // WCVpWo274ajfuKjf5WToP3Wcph73k9nw1MOWMUSBc0M=
+// SIG // FNwUAnwCIa3zlW5+S0rme+pJVpKHMA0GCSqGSIb3DQEB
+// SIG // BQUABIIBAIoqrrPNooj8EwXfd6R7abzclAu3mzoG3WWD
+// SIG // Wa6mE3H+RaKyS7JilZKB82sE73hdoGLCobih2u6QoxAW
+// SIG // Y6IWZcaXxxStVdwIX97/hpN9SpbikgZSB70fvQNi+VRG
+// SIG // nhzKkDI4vMGNq367UCAg/bKNlpTlN+1V2Ji+AdOCgfPV
+// SIG // ntoFhTeucufVVHN6XpYfOgufQwrDnXEtsrM+ve++gucn
+// SIG // QFo0YvIGJ/PnPNyEdbNiIUjhy40V0h7ClcxVX8y4qazs
+// SIG // +/UmdZX6BnecDOghtA0XoZ00zqaDmN4B3WA+d4N8olMc
+// SIG // aJk7/oNm+wYEFO78LP/QL5/5ZDuHPRyZGkGrFL1clYY=
 // SIG // End signature block
