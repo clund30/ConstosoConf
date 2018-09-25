@@ -3,31 +3,16 @@ var list = document.getElementById("schedule");
 var track1CheckBox = document.getElementById("show-track-1");
 var track2CheckBox = document.getElementById("show-track-2");
 
-// TODO: Create a function called downloadSchedule
-//       Use an XMLHttpRequest to GET "/schedule/list"
-//       The response will be a JSON object of the form "{ schedule: [ ... ] }"
-//       Save the array into the schedule variable
-//       Then call displaySchedule()
-
 function downloadSchedule() {
-    var request = new XMLHttpRequest();
-    request.open("GET", "/schedule/list?fail", true);
-    request.onreadystatechange = function () {
-        if (request.readyState === 4) {
-            try {
-                var response = JSON.parse(request.responseText);
-                if (request.status === 200) {
-                    schedule = response.schedule;
-                    displaySchedule();
-                } else {
-                    alert(response.message);
-                }
-            } catch (exception) {
-                alert("Schedule list not available.");
-            }
-        }
-    };
-    request.send();
+   $.ajax({
+        type: "GET",
+        url: "/schedule/list"
+    }).done(function(response) {
+        schedule = response.schedule;
+        displaySchedule();
+    }).fail(function() {
+           alert("Schedule list not available.");
+    });
 }
 
 function createSessionElement(session) {
@@ -58,7 +43,7 @@ function displaySchedule() {
     for (var i = 0; i < schedule.length; i++) {
         var tracks = schedule[i].tracks;
         var isCurrentTrack = (track1CheckBox.checked && tracks.indexOf(1) >= 0) ||
-            (track2CheckBox.checked && tracks.indexOf(2) >= 0);
+                             (track2CheckBox.checked && tracks.indexOf(2) >= 0);
         if (isCurrentTrack) {
             var li = createSessionElement(schedule[i]);
             list.appendChild(li);
@@ -67,12 +52,17 @@ function displaySchedule() {
 }
 
 function saveStar(sessionId, isStarred) {
-    // TODO: Create an XMLHttpRequest that POSTs to "/schedule/star/{sessionId}"
-    //       The request body must have the content type "application/x-www-form-urlencoded"
-    //       e.g. "starred=true" or "starred=false"
-    //       The response contains a JSON object "{ starCount: <number> }"
-    //       If the star count is more than 50, warn the user about this being a busy session.
+    $.ajax({
+        type: "POST",
+        url: "/schedule/star/" + sessionId,
+        data: { starred: isStarred }
+    }).done(function (response) {
+        if (isStarred && response.starCount > 50) {
+            alert("This session is very popular! Be sure to arrive early to get a seat.");
+        }
+    });
 }
+
 
 function handleListClick(event) {
     var isStarElement = event.srcElement.classList.contains("star");
@@ -93,13 +83,14 @@ function handleListClick(event) {
 track1CheckBox.addEventListener("click", displaySchedule, false);
 track2CheckBox.addEventListener("click", displaySchedule, false);
 list.addEventListener("click", handleListClick, false);
+
 downloadSchedule();
 // SIG // Begin signature block
 // SIG // MIIaVgYJKoZIhvcNAQcCoIIaRzCCGkMCAQExCzAJBgUr
 // SIG // DgMCGgUAMGcGCisGAQQBgjcCAQSgWTBXMDIGCisGAQQB
 // SIG // gjcCAR4wJAIBAQQQEODJBs441BGiowAQS9NQkAIBAAIB
-// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFNQ50zFVvlt8
-// SIG // uJyUVuUoDWeDAc6koIIVJjCCBJkwggOBoAMCAQICEzMA
+// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFAwcCUrmEhuP
+// SIG // 9AzbHdLWWoOleNFJoIIVJjCCBJkwggOBoAMCAQICEzMA
 // SIG // AACdHo0nrrjz2DgAAQAAAJ0wDQYJKoZIhvcNAQEFBQAw
 // SIG // eTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0
 // SIG // b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNVBAoTFU1p
@@ -135,28 +126,28 @@ downloadSchedule();
 // SIG // Ha7Ki8f3iB7q/pEMn08HCe0mkm6zlBkB+F+B567aiY9/
 // SIG // Wl6EX7W+fEblR6/+WCuRf4fcRh9RlczDYqG1x1/ryWlc
 // SIG // cZGpjVYgLDpOk/2bBo+tivhofju6eUKTOUn10F7scI1C
-// SIG // dcWCVZAbtVVhMIIEujCCA6KgAwIBAgIKYQKSSgAAAAAA
-// SIG // IDANBgkqhkiG9w0BAQUFADB3MQswCQYDVQQGEwJVUzET
+// SIG // dcWCVZAbtVVhMIIEujCCA6KgAwIBAgIKYQKOQgAAAAAA
+// SIG // HzANBgkqhkiG9w0BAQUFADB3MQswCQYDVQQGEwJVUzET
 // SIG // MBEGA1UECBMKV2FzaGluZ3RvbjEQMA4GA1UEBxMHUmVk
 // SIG // bW9uZDEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0
 // SIG // aW9uMSEwHwYDVQQDExhNaWNyb3NvZnQgVGltZS1TdGFt
-// SIG // cCBQQ0EwHhcNMTIwMTA5MjIyNTU5WhcNMTMwNDA5MjIy
-// SIG // NTU5WjCBszELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldh
+// SIG // cCBQQ0EwHhcNMTIwMTA5MjIyNTU4WhcNMTMwNDA5MjIy
+// SIG // NTU4WjCBszELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldh
 // SIG // c2hpbmd0b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNV
 // SIG // BAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjENMAsGA1UE
 // SIG // CxMETU9QUjEnMCUGA1UECxMebkNpcGhlciBEU0UgRVNO
-// SIG // OkI4RUMtMzBBNC03MTQ0MSUwIwYDVQQDExxNaWNyb3Nv
+// SIG // OkY1MjgtMzc3Ny04QTc2MSUwIwYDVQQDExxNaWNyb3Nv
 // SIG // ZnQgVGltZS1TdGFtcCBTZXJ2aWNlMIIBIjANBgkqhkiG
-// SIG // 9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzWPD96K1R9n5OZRT
-// SIG // rGuPpnk4IfTRbj0VOBbBcyyZj/vgPFvhokyLsquLtPJK
-// SIG // x7mTUNEm9YdTsHp180cPFytnLGTrYOdKjOCLXsRWaTc6
-// SIG // KgRdFwHIv6m308mro5GogeM/LbfY5MR4AHk5z/3HZOIj
-// SIG // EnieDHYnSY+arA504wZVVUnI7aF8cEVhfrJxFh7hwUG5
-// SIG // 0tIy6VIk8zZQBNfdbzxJ1QvUdkD8ZWUTfpVROtX/uJqn
-// SIG // V2tLFeU3WB/cAA3FrurfgUf58FKu5s9arOAUSqZxlID6
-// SIG // /bAjMGDpg2CsDiQe/xHy56VVYpXun3+eKdbNSwp2g/BD
-// SIG // BN8GSSDyU1pEsFF6OQIDAQABo4IBCTCCAQUwHQYDVR0O
-// SIG // BBYEFM0ZrGFNlGcr9q+UdVnb8FgAg6E6MB8GA1UdIwQY
+// SIG // 9w0BAQEFAAOCAQ8AMIIBCgKCAQEAluyOR01UwlyVgNdO
+// SIG // Cz2/l0PDS+NgZxEvAU0M2NFGLxBA3gukUFISiAtDei0/
+// SIG // 7khuZseR5gPKbux5qWojm81ins1qpD/no0P/YkehtLpE
+// SIG // +t9AwYVUfuigpyxDI5tSHzI19P6aVp+NY3d7MJ4KM4Vy
+// SIG // G8pKyMwlzdtdES7HsIzxj0NIRwW1eiAL5fPvwbr0s9jN
+// SIG // OI/7Iao9Cm2FF9DK54YDwDODtSXEzFqcxMPaYiVNUyUU
+// SIG // YY/7G+Ds90fGgEXmNVMjNnfKsN2YKznAdTUP3YFMIT12
+// SIG // MMWysGVzKUgn2MLSsIRHu3i61XQD3tdLGfdT3njahvdh
+// SIG // iCYztEfGoFSIFSssdQIDAQABo4IBCTCCAQUwHQYDVR0O
+// SIG // BBYEFC/oRsho025PsiDQ3olO8UfuSMHyMB8GA1UdIwQY
 // SIG // MBaAFCM0+NlSRnAK7UD7dvuzK7DDNbMPMFQGA1UdHwRN
 // SIG // MEswSaBHoEWGQ2h0dHA6Ly9jcmwubWljcm9zb2Z0LmNv
 // SIG // bS9wa2kvY3JsL3Byb2R1Y3RzL01pY3Jvc29mdFRpbWVT
@@ -164,15 +155,15 @@ downloadSchedule();
 // SIG // AQUFBzAChjxodHRwOi8vd3d3Lm1pY3Jvc29mdC5jb20v
 // SIG // cGtpL2NlcnRzL01pY3Jvc29mdFRpbWVTdGFtcFBDQS5j
 // SIG // cnQwEwYDVR0lBAwwCgYIKwYBBQUHAwgwDQYJKoZIhvcN
-// SIG // AQEFBQADggEBAFEc1t82HdyAvAKnxpnfFsiQBmkVmjK5
-// SIG // 82QQ0orzYikbeY/KYKmzXcTkFi01jESb8fRcYaRBrpqL
-// SIG // ulDRanlqs2KMnU1RUAupjtS/ohDAR9VOdVKJHj+Wao8u
-// SIG // QBQGcu4/cFmSXYXtg5n6goSe5AMBIROrJ9bMcUnl2h3/
-// SIG // bzwJTtWNZugMyX/uMRQCN197aeyJPkV/JUTnHxrWxRrD
-// SIG // SuTh8YSY50/5qZinGEbshGzsqQMK/Xx6Uh2ca6SoD5iS
-// SIG // pJJ4XCt4432yx9m2cH3fW3NTv6rUZlBL8Mk7lYXlwUpl
-// SIG // nSVYULsgVJF5OhsHXGpXKK8xx5/nwx3uR/0n13/PdNxl
-// SIG // xT8wggW8MIIDpKADAgECAgphMyYaAAAAAAAxMA0GCSqG
+// SIG // AQEFBQADggEBAHP/fS6dzY2IK3x9414VceloYvAItkNW
+// SIG // xFxKLWjY+UgRkfMRnIXsEtRUoHWpOKFZf3XuxvU02FSk
+// SIG // 4tDMfJerk3UwlwcdBFMsNn9/8UAeDJuA4hIKIDoxwAd1
+// SIG // Z+D6NJzsiPtXHOVYYiCQRS9dRanIjrN8cm0QJ8VL2G+i
+// SIG // qBKzbTUjZ/os2yUtuV2xHgXnQyg+nAV2d/El3gVHGW3e
+// SIG // SYWh2kpLCEYhNah1Nky3swiq37cr2b4qav3fNRfMPwzH
+// SIG // 3QbPTpQkYyALLiSuX0NEEnpc3TfbpEWzkToSV33jR8Zm
+// SIG // 08+cRlb0TAex4Ayq1fbVPKLgtdT4HH4EVRBrGPSRzVGn
+// SIG // lWUwggW8MIIDpKADAgECAgphMyYaAAAAAAAxMA0GCSqG
 // SIG // SIb3DQEBBQUAMF8xEzARBgoJkiaJk/IsZAEZFgNjb20x
 // SIG // GTAXBgoJkiaJk/IsZAEZFgltaWNyb3NvZnQxLTArBgNV
 // SIG // BAMTJE1pY3Jvc29mdCBSb290IENlcnRpZmljYXRlIEF1
@@ -271,33 +262,33 @@ downloadSchedule();
 // SIG // rrjz2DgAAQAAAJ0wCQYFKw4DAhoFAKCBvjAZBgkqhkiG
 // SIG // 9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgEL
 // SIG // MQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-// SIG // hZaEijTOSVVAPOq3MmylM9BHqocwXgYKKwYBBAGCNwIB
+// SIG // LvwKtBPt+6gBhW4I44IQEd+j4LYwXgYKKwYBBAGCNwIB
 // SIG // DDFQME6gJoAkAE0AaQBjAHIAbwBzAG8AZgB0ACAATABl
 // SIG // AGEAcgBuAGkAbgBnoSSAImh0dHA6Ly93d3cubWljcm9z
 // SIG // b2Z0LmNvbS9sZWFybmluZyAwDQYJKoZIhvcNAQEBBQAE
-// SIG // ggEAJTAsdV4VDM3yCg9sZoxnChduibV7ELezhwUhfuv9
-// SIG // 4skEvwNCeUPqBfxjBKMmgLswxzYfgxdxhlSk8jKAnK8h
-// SIG // VNEH7dWG85dHb5VYlz8facoNNFAdehLG6jzRaazticS7
-// SIG // kAio0YQDdeJArRa81/70XvaE01Gn5OlDme3q1JYsVr0q
-// SIG // oQFhl/5rwTKcKTtuPsaPFQ8YBzx+AW/jRqfFkwi292HS
-// SIG // 7j3w1GXyQqgQ6gcMRKkCDAFYrjA56/yP4d3VSrvNeuYH
-// SIG // NcXGNfsT/VLjrzO8EfX8V7DAKMqnjTasonaXxuF+P9GK
-// SIG // vIe4utgscI9vrQDNNyC/gmihYMq77CXbDWZhY6GCAh8w
+// SIG // ggEAp9CA/Qer4baPZZQdWVTq2XH7XgrHdNQJikbde34Q
+// SIG // 11l2ahRBaKagYHLFAGYBs384XIwHSL+1pygwfemXdXyn
+// SIG // GsprQmfXal509C0Dr2R2Ftb2ln8Tpl4lOrwhMYBhmgTm
+// SIG // WnT3KQSelJqYJMT89txrEpLMbPL+WOjjwiriAuYiPzVu
+// SIG // CALtv5MwL6IV8jpl5TGxEyBSxXtZgM/KolzkzaD+Gsd9
+// SIG // 3E6xks2p7wlYKuag0KMV9Pwobq+fJ0NJu/jE5qtQFa0k
+// SIG // voI6riWpdvOx3Nta9Fvp07zLoXwUJ/iI6FwEdsu+s0Of
+// SIG // dLRTp1Z/ELM+pC/LJVoe38RO4d2Nonkdy0MJnqGCAh8w
 // SIG // ggIbBgkqhkiG9w0BCQYxggIMMIICCAIBATCBhTB3MQsw
 // SIG // CQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQ
 // SIG // MA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMVTWljcm9z
 // SIG // b2Z0IENvcnBvcmF0aW9uMSEwHwYDVQQDExhNaWNyb3Nv
-// SIG // ZnQgVGltZS1TdGFtcCBQQ0ECCmECkkoAAAAAACAwCQYF
+// SIG // ZnQgVGltZS1TdGFtcCBQQ0ECCmECjkIAAAAAAB8wCQYF
 // SIG // Kw4DAhoFAKBdMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0B
-// SIG // BwEwHAYJKoZIhvcNAQkFMQ8XDTEyMTExNDIzNDQ1NVow
-// SIG // IwYJKoZIhvcNAQkEMRYEFI95FRRXAm1/Qz+iy+rXkFtd
-// SIG // xcAGMA0GCSqGSIb3DQEBBQUABIIBAMQdTFKUSXPCu3tQ
-// SIG // 5IYirZxSK6xyYlHAk+0iVtLBNV6b7IFWDgYK+8wxRav8
-// SIG // kW9AWAoZ/U1dJqJ2hyZMyRvw7VUxDLd5WHRw/O5jUvJ5
-// SIG // ACoSpRZhZ588jx52dsHq+4RqJ9Op6aHoda86P7YugQ0Z
-// SIG // sXd5tuu74mtopfgtglqpScUyCkS6IMGRpHWjTCz/1LQY
-// SIG // crwBHP7bnBPVhUrGPcJsDExOCFsSOhLQLVbJhwSglugY
-// SIG // pi8qv6HO1vE9t+w//phrsvqBXrhRyHbU2CTdZ9m9Bh6S
-// SIG // IotiYFIvABMnAM/ICK4j9Twj0CmNOClhaZBlMY2yvjrW
-// SIG // iTUa+RE9nlwQbmAq3io=
+// SIG // BwEwHAYJKoZIhvcNAQkFMQ8XDTEyMTEyNjE4MTUwMVow
+// SIG // IwYJKoZIhvcNAQkEMRYEFHjVFRt0Lqj11nBnydSVsy+E
+// SIG // n8v8MA0GCSqGSIb3DQEBBQUABIIBAF5PJ7aD1V4sNpUh
+// SIG // wZbMIIdaswYMzPb3bg4G2fXV5d+WDN33atLh+MIDVtrW
+// SIG // eVj4avj6SxWQoMo+RxYJvD6Kc4cLGo4at6aiQQUHKqwr
+// SIG // 1dZDn6/y+UAA+G+Zzy+gYYW5IeeEzV2seRChLl3ome1m
+// SIG // dbPEy7AIPqV8/+36g0nfnpnsSJBJ8nrXnjz9vDfHqkSG
+// SIG // DNQI+i8Mm8TjsUSqdExTBtEY40hwHJBOPbre0VGrH+XH
+// SIG // lxJ+CTEDbfnjuDL+RlLiNy8+1K4IuPWotGgwNWirigmy
+// SIG // WO7RA2yPQuLoTzcE9Z7hCUF8aY5c9Qzqhu0uOaWxIEKu
+// SIG // fnDdoaFj1Ww6jSfpU5s=
 // SIG // End signature block

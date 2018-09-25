@@ -4,24 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link href="styles/styles.css" rel="stylesheet" />
+    <link href="styles/pages/styles.css" rel="stylesheet" />
+    <link href="styles/nav.css" rel="stylesheet" />
+    <link href="styles/header.css" rel="stylesheet" />
+    <link href="styles/footer.css" rel="stylesheet" />
     <title>ContosoConf</title>
 </head>
 
 <body>
-    <nav>
+    <nav class="page-nav">
         <div class="container">
-            <a href="index.html">Home</a>
+            <a href="index.html" class="active">Home</a>
             <a href="about.html">About</a>
-            <a href="schedule.html">schedule</a>
+            <a href="schedule.html">Schedule</a>
+            <a href="register.html">Register</a>
         </div>
     </nav>
-    <div class="container">
-        <header>
+
+    <header class="page-header">
+        <div class="container">
             <h1>ContosoConf</h1>
-            <p>A two-track conference on the latest HTML5 developments</p>
-        </header>
+            <p class="tag-line">A two-track conference on the latest HTML5 developments</p>
+
+            <a class="register" href="register.html">
+                Register<br />
+                <span class="free">&#183; Free &#183;</span>
+            </a>
+        </div>
+    </header>
+    <div class="container">
+
         <section>
             <p>
                 The web keeps evolving. There's a wealth of new technologies to keep up with! ContosoConf is an
@@ -51,7 +63,9 @@
                 <li><img src="images/sponsors/sponsor5.png" alt="Southridge Video"></li>
             </ul>
         </section>
-        <footer>
+    </div>
+    <footer class="page-footer">
+        <div class="container">
             <p>
                 Hosted by Contoso
             </p>
@@ -64,8 +78,8 @@
             <p>
                 &#169; 2012 Contoso
             </p>
-        </footer>
-    </div>
+        </div>
+    </footer>
 </body>
 
 </html>
