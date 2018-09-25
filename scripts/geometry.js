@@ -1,175 +1,42 @@
-/// <reference path="../_namespace.js" />
-/// <reference path="../Object.inherit.js" />
-/// <reference path="../HtmlTemplate.js" />
-/// <reference path="../LocalStarStorage.js" />
-/// <reference path="../datetime.js" />
+﻿/// <reference path="_namespace.js" />
 
-(function () {
+conference.geometry = (function () {
 
-    // Import objects/functions from the conference namespace.
-    var HtmlTemplate = conference.HtmlTemplate;
-    var LocalStarStorage = conference.LocalStarStorage;
-    var parseTimeAsTotalMinutes = conference.parseTimeAsTotalMinutes;
+    var radiusOfEarthInMiles = 3963.1676;
 
+    var radians = function (degrees) {
+        return degrees * Math.PI / 180;
+    };
 
-    var ScheduleItem = Object.inherit({
+    var distanceInMiles = function (p1, p2) {
+        var lat1 = p1.latitude; // inputs are in decimal degrees
+        var lon1 = p1.longitude;
+        var lat2 = p2.latitude;
+        var lon2 = p2.longitude;
 
-        initialize: function (data, localStarStorage) {
-            this.id = data.id;
-            this.tracks = data.tracks;
-            this.localStarStorage = localStarStorage;
+        var dLat = radians(lat2 - lat1);
+        var dLon = radians(lon2 - lon1);
+        lat1 = radians(lat1);
+        lat2 = radians(lat2);
 
-            this.element = this.scheduleItemTemplate.createElement(data);
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            if (localStarStorage.isStarred(this.id)) {
-                this.element.classList.add(this.starredClass);
-            }
+        return radiusOfEarthInMiles * c;
+    };
 
-            this.initializeElementClass();
-            this.initializeElementPosition(data.start, data.end);
-            this.addStarClickEventHandler();
-        },
-
-        scheduleItemTemplate: HtmlTemplate.create("schedule-item"),
-
-        initializeElementClass: function () {
-            if (this.isInTrack(1) && this.isInTrack(2)) {
-                this.element.classList.add("both-tracks");
-            } else if (this.isInTrack(1)) {
-                this.element.classList.add("track-1");
-            } else if (this.isInTrack(2)) {
-                this.element.classList.add("track-2");
-            }
-        },
-
-        initializeElementPosition: function (start, end) {
-            var startTimeInMinutes = parseTimeAsTotalMinutes(start);
-            var endTimeInMinutes = parseTimeAsTotalMinutes(end);
-            var pixelsPerMinute = 2;
-            var conferenceStartTimeInMinutes = 8 * 60 + 30;
-            this.element.style.top = pixelsPerMinute * (startTimeInMinutes - conferenceStartTimeInMinutes) + "px";
-            this.element.style.height = pixelsPerMinute * (endTimeInMinutes - startTimeInMinutes) + "px";
-        },
-
-        addStarClickEventHandler: function () {
-            var starElement = this.element.querySelector(".star");
-            starElement.addEventListener("click", this.toggleStar.bind(this), false);
-        },
-
-        isInTrack: function (track) {
-            return this.tracks.indexOf(track) >= 0;
-        },
-
-        starredClass: "starred",
-
-        toggleStar: function () {
-            if (this.isStarred()) {
-                this.unsetStar();
-            } else {
-                this.setStar();
-            }
-        },
-
-        isStarred: function () {
-            return this.element.classList.contains(this.starredClass);
-        },
-
-        unsetStar: function () {
-            this.element.classList.remove(this.starredClass);
-            this.postStarChange(false);
-            this.localStarStorage.removeStar(this.id);
-        },
-
-        setStar: function () {
-            this.element.classList.add(this.starredClass);
-            this.postStarChange(true);
-            this.localStarStorage.addStar(this.id);
-        },
-
-        postStarChange: function (isStarred) {
-            var request = $.ajax({
-                type: "POST",
-                url: "/schedule/star/" + this.id,
-                data: { starred: isStarred },
-                context: this
-            });
-            request.done(function (responseData) {
-                this.updateStarCount(responseData.starCount);
-            });
-        },
-
-        updateStarCount: function (starCount) {
-            var starCountElement = this.element.querySelector(".star-count");
-            starCountElement.textContent = starCount.toString();
-        },
-
-        show: function () {
-            this.element.style.display = "block";
-        },
-
-        hide: function () {
-            this.element.style.display = "none";
-        }
-    });
-
-
-    var ScheduleList = Object.inherit({
-        initialize: function (listElement, localStarStorage) {
-            this.element = listElement;
-            this.localStarStorage = localStarStorage;
-            this.items = [];
-        },
-
-        startDownload: function () {
-            var request = $.ajax({
-                url: "/schedule/list",
-                context: this
-            });
-            request.done(this.downloadDone)
-                   .fail(this.downloadFailed);
-        },
-
-        downloadDone: function (responseData) {
-            this.addAll(responseData.schedule);
-        },
-
-        downloadFailed: function () {
-            alert("Could not retrieve schedule data at this time. Please try again later.");
-        },
-
-        addAll: function (itemsArray) {
-            itemsArray.forEach(this.add, this);
-        },
-
-        add: function (itemData) {
-            var item = ScheduleItem.create(itemData, this.localStarStorage);
-            this.items.push(item); // Store item object in our array
-            this.element.appendChild(item.element); // Also add the item element to the UI.
-        }
-    });
-
-
-    var Page = Object.inherit({
-        initialize: function () {
-            var scheduleListElement = document.getElementById("schedule");
-            this.scheduleList = ScheduleList.create(
-                scheduleListElement,
-                LocalStarStorage.create(localStorage)
-            );
-            this.scheduleList.startDownload();
-        }
-    });
-
-
-    Page.create();
-
+    return {
+        radians: radians,
+        distanceInMiles: distanceInMiles
+    };
+    
 } ());
 // SIG // Begin signature block
 // SIG // MIIaVgYJKoZIhvcNAQcCoIIaRzCCGkMCAQExCzAJBgUr
 // SIG // DgMCGgUAMGcGCisGAQQBgjcCAQSgWTBXMDIGCisGAQQB
 // SIG // gjcCAR4wJAIBAQQQEODJBs441BGiowAQS9NQkAIBAAIB
-// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFGafglyTjJMD
-// SIG // Wh0XrFi5vVMv17YPoIIVJjCCBJkwggOBoAMCAQICEzMA
+// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFIs5Mt3afb3f
+// SIG // 9FoJoFsg86lLeh+joIIVJjCCBJkwggOBoAMCAQICEzMA
 // SIG // AACdHo0nrrjz2DgAAQAAAJ0wDQYJKoZIhvcNAQEFBQAw
 // SIG // eTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0
 // SIG // b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNVBAoTFU1p
@@ -341,18 +208,18 @@
 // SIG // rrjz2DgAAQAAAJ0wCQYFKw4DAhoFAKCBvjAZBgkqhkiG
 // SIG // 9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgEL
 // SIG // MQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-// SIG // d8xYKFyxVEDYjsn2/bGJLk+B5iwwXgYKKwYBBAGCNwIB
+// SIG // peVXv+qpCJSfBNTvFVDNq+PwAGcwXgYKKwYBBAGCNwIB
 // SIG // DDFQME6gJoAkAE0AaQBjAHIAbwBzAG8AZgB0ACAATABl
 // SIG // AGEAcgBuAGkAbgBnoSSAImh0dHA6Ly93d3cubWljcm9z
 // SIG // b2Z0LmNvbS9sZWFybmluZyAwDQYJKoZIhvcNAQEBBQAE
-// SIG // ggEAJwcCThV+OVFpc0nCKAJGS05/l1d3OPpIdvXv7IvF
-// SIG // Chu4R4og7ckRqmVuhGDsUEQqKrM5/vGpau6p5VbB9qkF
-// SIG // 4tI89mfzuI3yVZqeFoPodZhbLmmdA1IVfTeQ6v76iaZW
-// SIG // kKEJZfZkfYeULPXsUB/VjnfpUPGC7Gxq7hqaTe0z9l3a
-// SIG // KqKlFG7iEgZkj4UpIIuChFdI6t50XYNQx/WHEzuXSC5K
-// SIG // v+Qcq2nKpQVykjyxtOxMYC46cWPDI2jmPJddiqvZQlPf
-// SIG // Ut7JXTquPfA4vZnajwIA/e/Vsn8VQ4Klbf6FfTkB/qMb
-// SIG // SFCGMiCjrowizlaeT54N4KVt83PfOphoJd4KA6GCAh8w
+// SIG // ggEAYdg2mK/Ap+jdWUrs7FAgatEsR2tQ0Ga22ald+br9
+// SIG // Wx39+cpdxBFuqI+/2GnQ39pTRKNlIRTxP5QpUBn4OoBM
+// SIG // SdCtLD80xZyvgmsSGlfqXiECPnxtB4mwtHEWIXg7EDeN
+// SIG // UBnkH+vebwML8vjjWEedzMXjK0yvcowx/wc2RfXboT2K
+// SIG // DxJ+b1e38/JZH1UmZtbYBYqOJNLOvzv5nlt74M8IqO64
+// SIG // Ulm/wJVxSoGdWjwd+KucUhaFNIAIVwvzMZD19VwRUFqh
+// SIG // khmJJF0RGl9wRaMz2Mzd7bks/tog4b2j3dfJ7DqPmYsL
+// SIG // 4eYYj+PvfpJHHmZClkBtvNCVX6NtDHVT90JpqaGCAh8w
 // SIG // ggIbBgkqhkiG9w0BCQYxggIMMIICCAIBATCBhTB3MQsw
 // SIG // CQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQ
 // SIG // MA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMVTWljcm9z
@@ -360,14 +227,14 @@
 // SIG // ZnQgVGltZS1TdGFtcCBQQ0ECCmECkkoAAAAAACAwCQYF
 // SIG // Kw4DAhoFAKBdMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0B
 // SIG // BwEwHAYJKoZIhvcNAQkFMQ8XDTEyMTExNDIzNTc0OFow
-// SIG // IwYJKoZIhvcNAQkEMRYEFBSoxwKL+uRem42yZ1ltpyZN
-// SIG // nhxlMA0GCSqGSIb3DQEBBQUABIIBAD+x0hh7liZ+vunf
-// SIG // 9O3CyRursxOoWc3RMyIZ/qlvREtS7EZ6uRpzvFvaVx9C
-// SIG // TGN974mqepQTGEGe8dj8f9MtxJ7guXuqSqZJK+EWRuB7
-// SIG // 1+ox3jtB9cnjQlpZpKaZSEVQtFDaXOOmG+4UYhwwwHwU
-// SIG // nwW2ARO03Y9DUQYSNO02EnSeuzDoG6kcgFQ9PE7z1Dxq
-// SIG // 2qFZOjaROphOwM3FqXAxrrhHbXfCORv3oMURS7k0HKMI
-// SIG // 8hfPFqPrpps7wSoX7O/U/avmGrndxZ63xsQi+pLRdcuI
-// SIG // j5hwP4qXWnoMhwpYp+YS4gRXv8l81lOW6nW7hmVlOhtI
-// SIG // p53d/zK2m/8FEwD9t6E=
+// SIG // IwYJKoZIhvcNAQkEMRYEFGd39yCeUKq8lZei4rTAYiAV
+// SIG // lru0MA0GCSqGSIb3DQEBBQUABIIBAEtTJk2F1g1B4hY1
+// SIG // X8ZvLykk1Kxx/yW7VW3pPeTdZwQS5eSQqz9qYgITRPCG
+// SIG // Q6oY3wuhblCN05QlERrApAIWV8OcHfx4NiRt/BhAGZkQ
+// SIG // QP+IFXguF9kBCpoFT7g2Ren6ygzmo/yvqY6Bqx8IIj5w
+// SIG // OgsaZK2PAbaPwpHoOzMnNZDiWkdgmGP7lok0xJPB1+PC
+// SIG // yM0nPXboLYFZJpl711NgvCYtBRtdkb0afZBxp9MwD95A
+// SIG // 6TKFWYTEevnqQfjrzNJ+nPQpjJj1a++hRvGXbdz0IdSj
+// SIG // JwOesaqqOssdKzVNvbDQUhLIrTk3ROgkJzIV8ORVO/C7
+// SIG // jU2n/ypmMEwO2tTslRc=
 // SIG // End signature block

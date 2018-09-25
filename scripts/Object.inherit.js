@@ -1,175 +1,45 @@
-/// <reference path="../_namespace.js" />
-/// <reference path="../Object.inherit.js" />
-/// <reference path="../HtmlTemplate.js" />
-/// <reference path="../LocalStarStorage.js" />
-/// <reference path="../datetime.js" />
+﻿(function () {
+    "use strict";
 
-(function () {
-
-    // Import objects/functions from the conference namespace.
-    var HtmlTemplate = conference.HtmlTemplate;
-    var LocalStarStorage = conference.LocalStarStorage;
-    var parseTimeAsTotalMinutes = conference.parseTimeAsTotalMinutes;
-
-
-    var ScheduleItem = Object.inherit({
-
-        initialize: function (data, localStarStorage) {
-            this.id = data.id;
-            this.tracks = data.tracks;
-            this.localStarStorage = localStarStorage;
-
-            this.element = this.scheduleItemTemplate.createElement(data);
-
-            if (localStarStorage.isStarred(this.id)) {
-                this.element.classList.add(this.starredClass);
+    var copyOwnProperties = function (from, to) {
+        for (var propertyName in from) {
+            if (from.hasOwnProperty(propertyName)) {
+                to[propertyName] = from[propertyName];
             }
+        }
+    };
 
-            this.initializeElementClass();
-            this.initializeElementPosition(data.start, data.end);
-            this.addStarClickEventHandler();
-        },
+    var inherit = function (additionalProperties) {
+        var subclass = Object.create(this);
 
-        scheduleItemTemplate: HtmlTemplate.create("schedule-item"),
-
-        initializeElementClass: function () {
-            if (this.isInTrack(1) && this.isInTrack(2)) {
-                this.element.classList.add("both-tracks");
-            } else if (this.isInTrack(1)) {
-                this.element.classList.add("track-1");
-            } else if (this.isInTrack(2)) {
-                this.element.classList.add("track-2");
+        subclass.create = function () {
+            // When calling `MyClass.create()` directly, `this` will be `MyClass` as expected.
+            // When passing `MyClass.create` to another function we lose the intended `this` (it's probably set to `window` or null)
+            // so explicitly use the `subclass` in that case.
+            var prototype = (this && this !== window) ? this : subclass;
+            var instance = Object.create(prototype);
+            
+            // The instance may have an `initialize` method.
+            if (typeof instance.initialize === "function") {
+                instance.initialize.apply(instance, arguments);
             }
-        },
+            
+            return instance;
+        };
 
-        initializeElementPosition: function (start, end) {
-            var startTimeInMinutes = parseTimeAsTotalMinutes(start);
-            var endTimeInMinutes = parseTimeAsTotalMinutes(end);
-            var pixelsPerMinute = 2;
-            var conferenceStartTimeInMinutes = 8 * 60 + 30;
-            this.element.style.top = pixelsPerMinute * (startTimeInMinutes - conferenceStartTimeInMinutes) + "px";
-            this.element.style.height = pixelsPerMinute * (endTimeInMinutes - startTimeInMinutes) + "px";
-        },
+        copyOwnProperties(additionalProperties, subclass);
 
-        addStarClickEventHandler: function () {
-            var starElement = this.element.querySelector(".star");
-            starElement.addEventListener("click", this.toggleStar.bind(this), false);
-        },
+        return subclass;
+    };
 
-        isInTrack: function (track) {
-            return this.tracks.indexOf(track) >= 0;
-        },
-
-        starredClass: "starred",
-
-        toggleStar: function () {
-            if (this.isStarred()) {
-                this.unsetStar();
-            } else {
-                this.setStar();
-            }
-        },
-
-        isStarred: function () {
-            return this.element.classList.contains(this.starredClass);
-        },
-
-        unsetStar: function () {
-            this.element.classList.remove(this.starredClass);
-            this.postStarChange(false);
-            this.localStarStorage.removeStar(this.id);
-        },
-
-        setStar: function () {
-            this.element.classList.add(this.starredClass);
-            this.postStarChange(true);
-            this.localStarStorage.addStar(this.id);
-        },
-
-        postStarChange: function (isStarred) {
-            var request = $.ajax({
-                type: "POST",
-                url: "/schedule/star/" + this.id,
-                data: { starred: isStarred },
-                context: this
-            });
-            request.done(function (responseData) {
-                this.updateStarCount(responseData.starCount);
-            });
-        },
-
-        updateStarCount: function (starCount) {
-            var starCountElement = this.element.querySelector(".star-count");
-            starCountElement.textContent = starCount.toString();
-        },
-
-        show: function () {
-            this.element.style.display = "block";
-        },
-
-        hide: function () {
-            this.element.style.display = "none";
-        }
-    });
-
-
-    var ScheduleList = Object.inherit({
-        initialize: function (listElement, localStarStorage) {
-            this.element = listElement;
-            this.localStarStorage = localStarStorage;
-            this.items = [];
-        },
-
-        startDownload: function () {
-            var request = $.ajax({
-                url: "/schedule/list",
-                context: this
-            });
-            request.done(this.downloadDone)
-                   .fail(this.downloadFailed);
-        },
-
-        downloadDone: function (responseData) {
-            this.addAll(responseData.schedule);
-        },
-
-        downloadFailed: function () {
-            alert("Could not retrieve schedule data at this time. Please try again later.");
-        },
-
-        addAll: function (itemsArray) {
-            itemsArray.forEach(this.add, this);
-        },
-
-        add: function (itemData) {
-            var item = ScheduleItem.create(itemData, this.localStarStorage);
-            this.items.push(item); // Store item object in our array
-            this.element.appendChild(item.element); // Also add the item element to the UI.
-        }
-    });
-
-
-    var Page = Object.inherit({
-        initialize: function () {
-            var scheduleListElement = document.getElementById("schedule");
-            this.scheduleList = ScheduleList.create(
-                scheduleListElement,
-                LocalStarStorage.create(localStorage)
-            );
-            this.scheduleList.startDownload();
-        }
-    });
-
-
-    Page.create();
-
+    Object.inherit = inherit;
 } ());
 // SIG // Begin signature block
 // SIG // MIIaVgYJKoZIhvcNAQcCoIIaRzCCGkMCAQExCzAJBgUr
 // SIG // DgMCGgUAMGcGCisGAQQBgjcCAQSgWTBXMDIGCisGAQQB
 // SIG // gjcCAR4wJAIBAQQQEODJBs441BGiowAQS9NQkAIBAAIB
-// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFGafglyTjJMD
-// SIG // Wh0XrFi5vVMv17YPoIIVJjCCBJkwggOBoAMCAQICEzMA
+// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFHVvbwiWQ9tD
+// SIG // eC4Tmuer/okyJM6FoIIVJjCCBJkwggOBoAMCAQICEzMA
 // SIG // AACdHo0nrrjz2DgAAQAAAJ0wDQYJKoZIhvcNAQEFBQAw
 // SIG // eTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0
 // SIG // b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNVBAoTFU1p
@@ -341,18 +211,18 @@
 // SIG // rrjz2DgAAQAAAJ0wCQYFKw4DAhoFAKCBvjAZBgkqhkiG
 // SIG // 9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgEL
 // SIG // MQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-// SIG // d8xYKFyxVEDYjsn2/bGJLk+B5iwwXgYKKwYBBAGCNwIB
+// SIG // r6bixYrEXMQt7szGpJlgcDegiSkwXgYKKwYBBAGCNwIB
 // SIG // DDFQME6gJoAkAE0AaQBjAHIAbwBzAG8AZgB0ACAATABl
 // SIG // AGEAcgBuAGkAbgBnoSSAImh0dHA6Ly93d3cubWljcm9z
 // SIG // b2Z0LmNvbS9sZWFybmluZyAwDQYJKoZIhvcNAQEBBQAE
-// SIG // ggEAJwcCThV+OVFpc0nCKAJGS05/l1d3OPpIdvXv7IvF
-// SIG // Chu4R4og7ckRqmVuhGDsUEQqKrM5/vGpau6p5VbB9qkF
-// SIG // 4tI89mfzuI3yVZqeFoPodZhbLmmdA1IVfTeQ6v76iaZW
-// SIG // kKEJZfZkfYeULPXsUB/VjnfpUPGC7Gxq7hqaTe0z9l3a
-// SIG // KqKlFG7iEgZkj4UpIIuChFdI6t50XYNQx/WHEzuXSC5K
-// SIG // v+Qcq2nKpQVykjyxtOxMYC46cWPDI2jmPJddiqvZQlPf
-// SIG // Ut7JXTquPfA4vZnajwIA/e/Vsn8VQ4Klbf6FfTkB/qMb
-// SIG // SFCGMiCjrowizlaeT54N4KVt83PfOphoJd4KA6GCAh8w
+// SIG // ggEAJONb9LXCqz3DkONJbvakqfMhhMcWS5i8bGIXNP3u
+// SIG // /fNf/TP9AggzBAbmTX90yp5jZF5FJBqKr+btzyl4ipqU
+// SIG // qF0SjqMnqy2FNVkiDVwmJ5XRd776BJYQ4ZUk8FMLyyQJ
+// SIG // p1YB7sFTG5iRkEPG1N1ZNdGrwVDnQt7ZHFa2IsP1Cy5x
+// SIG // 63NL7EGgBtoctfiLuAz/sk7qmar0mc3GsXJ2RmEN/MgR
+// SIG // YtDa0B11QUbRZoeSKI2v2Nhb7QdT4Ulv1yM7kv6cfU5a
+// SIG // UYjMvIN1onH6QcQxmO2jgv77F546NZLCpu/xqFGb69fR
+// SIG // Z14agrxMhCQQRxPkMqvfJS/h8DZF9GPs4571EqGCAh8w
 // SIG // ggIbBgkqhkiG9w0BCQYxggIMMIICCAIBATCBhTB3MQsw
 // SIG // CQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQ
 // SIG // MA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMVTWljcm9z
@@ -360,14 +230,14 @@
 // SIG // ZnQgVGltZS1TdGFtcCBQQ0ECCmECkkoAAAAAACAwCQYF
 // SIG // Kw4DAhoFAKBdMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0B
 // SIG // BwEwHAYJKoZIhvcNAQkFMQ8XDTEyMTExNDIzNTc0OFow
-// SIG // IwYJKoZIhvcNAQkEMRYEFBSoxwKL+uRem42yZ1ltpyZN
-// SIG // nhxlMA0GCSqGSIb3DQEBBQUABIIBAD+x0hh7liZ+vunf
-// SIG // 9O3CyRursxOoWc3RMyIZ/qlvREtS7EZ6uRpzvFvaVx9C
-// SIG // TGN974mqepQTGEGe8dj8f9MtxJ7guXuqSqZJK+EWRuB7
-// SIG // 1+ox3jtB9cnjQlpZpKaZSEVQtFDaXOOmG+4UYhwwwHwU
-// SIG // nwW2ARO03Y9DUQYSNO02EnSeuzDoG6kcgFQ9PE7z1Dxq
-// SIG // 2qFZOjaROphOwM3FqXAxrrhHbXfCORv3oMURS7k0HKMI
-// SIG // 8hfPFqPrpps7wSoX7O/U/avmGrndxZ63xsQi+pLRdcuI
-// SIG // j5hwP4qXWnoMhwpYp+YS4gRXv8l81lOW6nW7hmVlOhtI
-// SIG // p53d/zK2m/8FEwD9t6E=
+// SIG // IwYJKoZIhvcNAQkEMRYEFHZg7NkDV7G4Y5+gwR1RkT5z
+// SIG // C0dAMA0GCSqGSIb3DQEBBQUABIIBAIfN2yg0iutJcTX7
+// SIG // PcYD5VCNHslQelh0F82efWVHWXwnkt1gwLM/IrJvJ8Mh
+// SIG // ipCNBetTSQJmEY/aV+On1RMJsY08NXGGC9jHPxgPvEqN
+// SIG // QVTi2cUBP32ZSPnzJw6Jdp7XWB4p/OakRD49yG9H/QNn
+// SIG // VCt4wh4lEZ5/+g6qauW6ZXit6gPeasl59opKna5j0fV/
+// SIG // L5JHD/zd1lYk+e49WdkOLIeAyU3841F9GKitDWG9IcIF
+// SIG // b9hFdyawyrGpmGej42S4BIr1UO+RsLnI4+syt2mawabS
+// SIG // w17Bnu2zog3o/0uDgPI5sGhFT06BU/ruTe77qcS5GfhL
+// SIG // 9Win29CphXStgJVSuTM=
 // SIG // End signature block

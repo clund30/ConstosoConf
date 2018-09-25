@@ -1,175 +1,56 @@
-/// <reference path="../_namespace.js" />
-/// <reference path="../Object.inherit.js" />
-/// <reference path="../HtmlTemplate.js" />
-/// <reference path="../LocalStarStorage.js" />
-/// <reference path="../datetime.js" />
+﻿/// <reference path="_namespace.js" />
+/// <reference path="Object.inherit.js" />
 
 (function () {
 
-    // Import objects/functions from the conference namespace.
-    var HtmlTemplate = conference.HtmlTemplate;
-    var LocalStarStorage = conference.LocalStarStorage;
-    var parseTimeAsTotalMinutes = conference.parseTimeAsTotalMinutes;
+    conference.HtmlTemplate = Object.inherit({
+        
+        initialize: function(templateId) {
+            var tempDiv = document.createElement("div");
+            tempDiv.innerHTML = this.getTemplateHtml(templateId);
+            this.templateElement = this.findTemplateElementInDiv(tempDiv);
+        },
 
+        createElement: function (data) {
+            var element = this.templateElement.cloneNode(true);
+            this.dataBindElement(element, data);
+            return element;
+        },
 
-    var ScheduleItem = Object.inherit({
+        getTemplateHtml: function (templateId) {
+            return document.getElementById(templateId).textContent;
+        },
 
-        initialize: function (data, localStarStorage) {
-            this.id = data.id;
-            this.tracks = data.tracks;
-            this.localStarStorage = localStarStorage;
-
-            this.element = this.scheduleItemTemplate.createElement(data);
-
-            if (localStarStorage.isStarred(this.id)) {
-                this.element.classList.add(this.starredClass);
+        findTemplateElementInDiv: function (div) {
+            var templateElement = div.firstChild;
+            var ELEMENT_NODE = 1;
+            while (templateElement && templateElement.nodeType !== ELEMENT_NODE) {
+                templateElement = templateElement.nextSibling;
             }
-
-            this.initializeElementClass();
-            this.initializeElementPosition(data.start, data.end);
-            this.addStarClickEventHandler();
+            return templateElement;
         },
 
-        scheduleItemTemplate: HtmlTemplate.create("schedule-item"),
-
-        initializeElementClass: function () {
-            if (this.isInTrack(1) && this.isInTrack(2)) {
-                this.element.classList.add("both-tracks");
-            } else if (this.isInTrack(1)) {
-                this.element.classList.add("track-1");
-            } else if (this.isInTrack(2)) {
-                this.element.classList.add("track-2");
+        dataBindElement: function (element, data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property)) {
+                    var value = data[property];
+                    var elementToBind = element.querySelector("[data-bind=" + property + "]");
+                    if (elementToBind) {
+                        elementToBind.textContent = value.toString();
+                    }
+                }
             }
-        },
-
-        initializeElementPosition: function (start, end) {
-            var startTimeInMinutes = parseTimeAsTotalMinutes(start);
-            var endTimeInMinutes = parseTimeAsTotalMinutes(end);
-            var pixelsPerMinute = 2;
-            var conferenceStartTimeInMinutes = 8 * 60 + 30;
-            this.element.style.top = pixelsPerMinute * (startTimeInMinutes - conferenceStartTimeInMinutes) + "px";
-            this.element.style.height = pixelsPerMinute * (endTimeInMinutes - startTimeInMinutes) + "px";
-        },
-
-        addStarClickEventHandler: function () {
-            var starElement = this.element.querySelector(".star");
-            starElement.addEventListener("click", this.toggleStar.bind(this), false);
-        },
-
-        isInTrack: function (track) {
-            return this.tracks.indexOf(track) >= 0;
-        },
-
-        starredClass: "starred",
-
-        toggleStar: function () {
-            if (this.isStarred()) {
-                this.unsetStar();
-            } else {
-                this.setStar();
-            }
-        },
-
-        isStarred: function () {
-            return this.element.classList.contains(this.starredClass);
-        },
-
-        unsetStar: function () {
-            this.element.classList.remove(this.starredClass);
-            this.postStarChange(false);
-            this.localStarStorage.removeStar(this.id);
-        },
-
-        setStar: function () {
-            this.element.classList.add(this.starredClass);
-            this.postStarChange(true);
-            this.localStarStorage.addStar(this.id);
-        },
-
-        postStarChange: function (isStarred) {
-            var request = $.ajax({
-                type: "POST",
-                url: "/schedule/star/" + this.id,
-                data: { starred: isStarred },
-                context: this
-            });
-            request.done(function (responseData) {
-                this.updateStarCount(responseData.starCount);
-            });
-        },
-
-        updateStarCount: function (starCount) {
-            var starCountElement = this.element.querySelector(".star-count");
-            starCountElement.textContent = starCount.toString();
-        },
-
-        show: function () {
-            this.element.style.display = "block";
-        },
-
-        hide: function () {
-            this.element.style.display = "none";
         }
+        
     });
-
-
-    var ScheduleList = Object.inherit({
-        initialize: function (listElement, localStarStorage) {
-            this.element = listElement;
-            this.localStarStorage = localStarStorage;
-            this.items = [];
-        },
-
-        startDownload: function () {
-            var request = $.ajax({
-                url: "/schedule/list",
-                context: this
-            });
-            request.done(this.downloadDone)
-                   .fail(this.downloadFailed);
-        },
-
-        downloadDone: function (responseData) {
-            this.addAll(responseData.schedule);
-        },
-
-        downloadFailed: function () {
-            alert("Could not retrieve schedule data at this time. Please try again later.");
-        },
-
-        addAll: function (itemsArray) {
-            itemsArray.forEach(this.add, this);
-        },
-
-        add: function (itemData) {
-            var item = ScheduleItem.create(itemData, this.localStarStorage);
-            this.items.push(item); // Store item object in our array
-            this.element.appendChild(item.element); // Also add the item element to the UI.
-        }
-    });
-
-
-    var Page = Object.inherit({
-        initialize: function () {
-            var scheduleListElement = document.getElementById("schedule");
-            this.scheduleList = ScheduleList.create(
-                scheduleListElement,
-                LocalStarStorage.create(localStorage)
-            );
-            this.scheduleList.startDownload();
-        }
-    });
-
-
-    Page.create();
 
 } ());
 // SIG // Begin signature block
 // SIG // MIIaVgYJKoZIhvcNAQcCoIIaRzCCGkMCAQExCzAJBgUr
 // SIG // DgMCGgUAMGcGCisGAQQBgjcCAQSgWTBXMDIGCisGAQQB
 // SIG // gjcCAR4wJAIBAQQQEODJBs441BGiowAQS9NQkAIBAAIB
-// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFGafglyTjJMD
-// SIG // Wh0XrFi5vVMv17YPoIIVJjCCBJkwggOBoAMCAQICEzMA
+// SIG // AAIBAAIBAAIBADAhMAkGBSsOAwIaBQAEFKb/bqQhtPLK
+// SIG // 2zHTpcOgFb9m2h0QoIIVJjCCBJkwggOBoAMCAQICEzMA
 // SIG // AACdHo0nrrjz2DgAAQAAAJ0wDQYJKoZIhvcNAQEFBQAw
 // SIG // eTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0
 // SIG // b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNVBAoTFU1p
@@ -341,18 +222,18 @@
 // SIG // rrjz2DgAAQAAAJ0wCQYFKw4DAhoFAKCBvjAZBgkqhkiG
 // SIG // 9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgEL
 // SIG // MQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-// SIG // d8xYKFyxVEDYjsn2/bGJLk+B5iwwXgYKKwYBBAGCNwIB
+// SIG // HhzIQ1s/0zAnLIJKUVBwJOF7wo0wXgYKKwYBBAGCNwIB
 // SIG // DDFQME6gJoAkAE0AaQBjAHIAbwBzAG8AZgB0ACAATABl
 // SIG // AGEAcgBuAGkAbgBnoSSAImh0dHA6Ly93d3cubWljcm9z
 // SIG // b2Z0LmNvbS9sZWFybmluZyAwDQYJKoZIhvcNAQEBBQAE
-// SIG // ggEAJwcCThV+OVFpc0nCKAJGS05/l1d3OPpIdvXv7IvF
-// SIG // Chu4R4og7ckRqmVuhGDsUEQqKrM5/vGpau6p5VbB9qkF
-// SIG // 4tI89mfzuI3yVZqeFoPodZhbLmmdA1IVfTeQ6v76iaZW
-// SIG // kKEJZfZkfYeULPXsUB/VjnfpUPGC7Gxq7hqaTe0z9l3a
-// SIG // KqKlFG7iEgZkj4UpIIuChFdI6t50XYNQx/WHEzuXSC5K
-// SIG // v+Qcq2nKpQVykjyxtOxMYC46cWPDI2jmPJddiqvZQlPf
-// SIG // Ut7JXTquPfA4vZnajwIA/e/Vsn8VQ4Klbf6FfTkB/qMb
-// SIG // SFCGMiCjrowizlaeT54N4KVt83PfOphoJd4KA6GCAh8w
+// SIG // ggEANL000y9K3M9O+/WbZC/iNdxZwnA/U52Ls3DTtjm6
+// SIG // FMQfrEYQjYKUUmo7Hx1EJSGU6GokoNKomvQRdRblRHtF
+// SIG // jZIU9npLko01RA0h9oqC3KWPflzJpEp4NE8NN+6ERSAy
+// SIG // Kb6PSP/ezPUSb0vZAz5WRXvCp7+cQRQ9IqFf6A34j31y
+// SIG // hs4FIdUrJjYU9tGRBMudjYerMBERSJiJOlnkQMZtH5gI
+// SIG // pqAYILiVGhwrpiBlVNHn1g7HwfK/MMZizqRt9ejpQSWt
+// SIG // 5EzjMqI6Y3pUza7WOU/4TpSDXyGPmQO3tdyQTEkUVJGj
+// SIG // LY7xij25yl86x2vszaiVM1Sy//Ck102MeLPEc6GCAh8w
 // SIG // ggIbBgkqhkiG9w0BCQYxggIMMIICCAIBATCBhTB3MQsw
 // SIG // CQYDVQQGEwJVUzETMBEGA1UECBMKV2FzaGluZ3RvbjEQ
 // SIG // MA4GA1UEBxMHUmVkbW9uZDEeMBwGA1UEChMVTWljcm9z
@@ -360,14 +241,14 @@
 // SIG // ZnQgVGltZS1TdGFtcCBQQ0ECCmECkkoAAAAAACAwCQYF
 // SIG // Kw4DAhoFAKBdMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0B
 // SIG // BwEwHAYJKoZIhvcNAQkFMQ8XDTEyMTExNDIzNTc0OFow
-// SIG // IwYJKoZIhvcNAQkEMRYEFBSoxwKL+uRem42yZ1ltpyZN
-// SIG // nhxlMA0GCSqGSIb3DQEBBQUABIIBAD+x0hh7liZ+vunf
-// SIG // 9O3CyRursxOoWc3RMyIZ/qlvREtS7EZ6uRpzvFvaVx9C
-// SIG // TGN974mqepQTGEGe8dj8f9MtxJ7guXuqSqZJK+EWRuB7
-// SIG // 1+ox3jtB9cnjQlpZpKaZSEVQtFDaXOOmG+4UYhwwwHwU
-// SIG // nwW2ARO03Y9DUQYSNO02EnSeuzDoG6kcgFQ9PE7z1Dxq
-// SIG // 2qFZOjaROphOwM3FqXAxrrhHbXfCORv3oMURS7k0HKMI
-// SIG // 8hfPFqPrpps7wSoX7O/U/avmGrndxZ63xsQi+pLRdcuI
-// SIG // j5hwP4qXWnoMhwpYp+YS4gRXv8l81lOW6nW7hmVlOhtI
-// SIG // p53d/zK2m/8FEwD9t6E=
+// SIG // IwYJKoZIhvcNAQkEMRYEFPblB/WcBcewDLn4XdaH81Go
+// SIG // yqFcMA0GCSqGSIb3DQEBBQUABIIBAIli+Jh0MuBnfxwT
+// SIG // z6GVFkvyqt4PPIkbJEnsjnefGVTWmgewjyHiNAfxGVSd
+// SIG // umjczGw9zWxGYYVb2LrVA/e1MWSt9LO4+6w2XwgD16ce
+// SIG // Su/ZwfKPqLNyyyOD9iCucBqGNsOmaRzwYZIO5NNvCUJf
+// SIG // j8vonwtoyp7issL4+UzXOYIbvoR9rGPTY8iC6Hm2BIws
+// SIG // o776FBzL3c/b9+bvnIQjoz4uEtdAi00fNfv/F2SP44NA
+// SIG // Hrf5Z6JrX+q8vsOCTTxKRtYLEqnRLHO/38bYZR06bv9i
+// SIG // pPfwsTZ3y11pPoKh31S2HiqJQOAuZTiPO5Zep7BJHoKl
+// SIG // XN6pcIk445kw8dFGBf8=
 // SIG // End signature block
